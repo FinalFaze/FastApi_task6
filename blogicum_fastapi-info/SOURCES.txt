@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+app/core.py
+app/main.py
+app/db/database.py
+app/db/models.py
+app/routers/blog.py
+app/schemas/blog.py
+blogicum_fastapi_min.egg-info/PKG-INFO
+blogicum_fastapi_min.egg-info/SOURCES.txt
+blogicum_fastapi_min.egg-info/dependency_links.txt
+blogicum_fastapi_min.egg-info/requires.txt
+blogicum_fastapi_min.egg-info/top_level.txt
