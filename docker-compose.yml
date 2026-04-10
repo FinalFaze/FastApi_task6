@@ -28,6 +28,11 @@ services:
         condition: service_healthy
     ports:
       - "${APP_PORT}:8000"
+    volumes:
+      - blogicum_media:/app/media
+      - blogicum_logs:/app/logs
 
 volumes:
   blogicum_pgdata:
+  blogicum_media:
+  blogicum_logs:

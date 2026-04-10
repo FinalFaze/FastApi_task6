@@ -12,6 +12,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
-RUN chmod +x /app/entrypoint.sh
+RUN mkdir -p /app/media /app/logs && chmod +x /app/entrypoint.sh
 
 CMD ["/app/entrypoint.sh"]

@@ -10,3 +10,5 @@ __pycache__
 db.sqlite3
 blogicum_fastapi-info
 blogicum_fastapi_min.egg-info
+media
+logs

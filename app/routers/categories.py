@@ -12,7 +12,6 @@ from app.schemas.blog import CategoryCreate, CategoryOut, CategoryUpdate
 router = APIRouter(
     prefix="/categories",
     tags=["categories"],
-    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -25,7 +24,11 @@ def list_categories(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
-def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(
+    payload: CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     try:
         return CategoryUseCase(CategoryRepository(db)).create(payload.model_dump())
     except DomainError as exc:
@@ -45,6 +48,7 @@ def update_category(
     category_id: int,
     payload: CategoryUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     try:
         return CategoryUseCase(CategoryRepository(db)).update(
@@ -56,7 +60,11 @@ def update_category(
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     try:
         CategoryUseCase(CategoryRepository(db)).delete(category_id)
     except DomainError as exc:

@@ -11,6 +11,7 @@ from app.routers.dependencies import get_current_user
 from app.routers.utils import raise_http_error
 from app.schemas.auth import LoginRequest, TokenOut
 from app.schemas.blog import UserOut
+from app.security import get_access_token_expire_seconds
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger("app.audit")
@@ -23,8 +24,15 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             payload.username,
             payload.password,
         )
-        logger.info("login_success username=%s", payload.username)
-        return TokenOut(access_token=token)
+        logger.info(
+            "login_success username=%s expires_in_seconds=%s",
+            payload.username,
+            get_access_token_expire_seconds(),
+        )
+        return TokenOut(
+            access_token=token,
+            expires_in=get_access_token_expire_seconds(),
+        )
     except DomainError as exc:
         logger.warning(
             "login_failed username=%s status=%s",

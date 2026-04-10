@@ -12,7 +12,6 @@ from app.schemas.blog import LocationCreate, LocationOut, LocationUpdate
 router = APIRouter(
     prefix="/locations",
     tags=["locations"],
-    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -25,7 +24,11 @@ def list_locations(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=LocationOut, status_code=status.HTTP_201_CREATED)
-def create_location(payload: LocationCreate, db: Session = Depends(get_db)):
+def create_location(
+    payload: LocationCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     try:
         return LocationUseCase(LocationRepository(db)).create(payload.model_dump())
     except DomainError as exc:
@@ -45,6 +48,7 @@ def update_location(
     location_id: int,
     payload: LocationUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     try:
         return LocationUseCase(LocationRepository(db)).update(
@@ -56,7 +60,11 @@ def update_location(
 
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_location(location_id: int, db: Session = Depends(get_db)):
+def delete_location(
+    location_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     try:
         LocationUseCase(LocationRepository(db)).delete(location_id)
     except DomainError as exc:

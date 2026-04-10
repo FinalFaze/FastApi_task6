@@ -184,6 +184,11 @@ class PostOut(ORMOut):
     image: Optional[str]
 
 
+class ImageUploadOut(BaseModel):
+    file_name: str
+    image: str
+
+
 class CommentCreate(StrictSchema):
     text: str
     author_id: int = Field(ge=1)

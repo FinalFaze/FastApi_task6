@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_file: str = Field(default="logs/app.log", alias="LOG_FILE")
 
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
     db_host: str = Field(default="db", alias="DB_HOST")
@@ -22,15 +23,13 @@ class Settings(BaseSettings):
     db_user: str = Field(default="blogicum", alias="DB_USER")
     db_password: str = Field(default="blogicum", alias="DB_PASSWORD")
 
-    jwt_secret_key: str = Field(
-        default="change-me-super-secret-key",
-        alias="JWT_SECRET_KEY",
-    )
+    jwt_secret_key: str = Field(default="change-me-super-secret-key", alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    jwt_access_token_expire_minutes: int = Field(
-        default=60,
-        alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES",
-    )
+    jwt_access_token_expire_minutes: int = Field(default=60, alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
+
+    media_root: str = Field(default="media", alias="MEDIA_ROOT")
+    media_url: str = Field(default="/media", alias="MEDIA_URL")
+    max_upload_file_size_mb: int = Field(default=5, alias="MAX_UPLOAD_FILE_SIZE_MB")
 
     @property
     def sqlalchemy_database_url(self) -> str:

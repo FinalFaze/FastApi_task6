@@ -39,13 +39,17 @@ def verify_password(password: str, stored_password: str) -> bool:
     return compare_digest(password, stored_password)
 
 
+def get_access_token_expire_seconds() -> int:
+    return settings.jwt_access_token_expire_minutes * 60
+
+
 def create_access_token(user_id: int, username: str) -> str:
-    expire_at = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.jwt_access_token_expire_minutes,
-    )
+    now = datetime.now(timezone.utc)
+    expire_at = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
     payload = {
         "sub": str(user_id),
         "username": username,
+        "iat": now,
         "exp": expire_at,
     }
     return jwt.encode(

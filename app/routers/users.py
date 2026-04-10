@@ -13,10 +13,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=list[UserOut])
-def list_users(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
+def list_users(db: Session = Depends(get_db)):
     try:
         return UserUseCase(UserRepository(db)).list()
     except DomainError as exc:
@@ -35,7 +32,6 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
 ):
     try:
         return UserUseCase(UserRepository(db)).get(user_id)
