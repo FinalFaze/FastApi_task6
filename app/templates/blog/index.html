@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Лента записей
+{% endblock %}
+
+{% block content %}
+  {% for post in page_obj %}
+    <article class="mb-5">
+      {% include "includes/post_card.html" %}
+    </article>
+  {% else %}
+    <p class="text-center">Публикаций пока нет.</p>
+  {% endfor %}
+
+  {% include "includes/paginator.html" %}
+{% endblock %}

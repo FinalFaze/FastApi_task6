@@ -39,3 +39,26 @@ def get_current_user(
         return AuthUseCase(UserRepository(db)).get_current_user(credentials.credentials)
     except DomainError as exc:
         raise_http_error(exc)
+
+
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    if credentials is None:
+        return None
+
+    if credentials.scheme.lower() != "bearer":
+        raise_http_error(
+            DomainUnauthorizedError(
+                message="Invalid authentication scheme",
+                entity="Auth",
+                operation="get_optional_current_user",
+                details={},
+            )
+        )
+
+    try:
+        return AuthUseCase(UserRepository(db)).get_current_user(credentials.credentials)
+    except DomainError as exc:
+        raise_http_error(exc)

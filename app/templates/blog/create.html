@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% set is_edit = "/edit/" in request.url.path %}
+{% set is_delete = "/delete/" in request.url.path %}
+{% set current_title = values.title if values is defined and values.title is defined else (post.title if post is defined and post else "") %}
+{% set current_text = values.text if values is defined and values.text is defined else (post.text if post is defined and post else "") %}
+{% set current_category_id = values.category_id if values is defined and values.category_id is defined else (post.category_id if post is defined and post else "") %}
+{% set current_location_id = values.location_id if values is defined and values.location_id is defined else (post.location_id if post is defined and post else "") %}
+{% set current_pub_date = pub_date_value if pub_date_value is defined else "" %}
+
+{% block title %}
+  {% if is_edit %}
+    Редактирование публикации
+  {% elif is_delete %}
+    Удаление публикации
+  {% else %}
+    Добавление публикации
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="col d-flex justify-content-center">
+    <div class="card" style="width: 40rem;">
+      <div class="card-header">
+        {% if is_edit %}
+          Редактирование публикации
+        {% elif is_delete %}
+          Удаление публикации
+        {% else %}
+          Добавление публикации
+        {% endif %}
+      </div>
+
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {{ csrf_input(request) }}
+          {% if not is_delete %}
+            <div class="mb-3">
+              <label class="form-label" for="title">Заголовок</label>
+              <input class="form-control" id="title" type="text" name="title" maxlength="256" value="{{ current_title }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="text">Текст</label>
+              <textarea class="form-control" id="text" name="text" rows="8" required>{{ current_text }}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="pub_date">Дата публикации</label>
+              <input class="form-control" id="pub_date" type="datetime-local" name="pub_date" value="{{ current_pub_date }}">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="category_id">Категория</label>
+              <select class="form-select" id="category_id" name="category_id">
+                <option value="">Без категории</option>
+                {% for category in categories %}
+                  <option value="{{ category.id }}" {% if current_category_id|string == category.id|string %}selected{% endif %}>
+                    {{ category.title }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="location_id">Местоположение</label>
+              <select class="form-select" id="location_id" name="location_id">
+                <option value="">Планета Земля</option>
+                {% for location in locations %}
+                  <option value="{{ location.id }}" {% if current_location_id|string == location.id|string %}selected{% endif %}>
+                    {{ location.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="image_file">Изображение</label>
+              <input class="form-control" id="image_file" type="file" name="image_file" accept="image/*">
+            </div>
+
+            {% if post is defined and post and post.image %}
+              <div class="mb-3">
+                <p>Текущее изображение:</p>
+                <a href="{{ post.image }}" target="_blank">
+                  <img class="border-3 rounded img-fluid img-thumbnail mb-2" src="{{ post.image }}">
+                </a>
+              </div>
+            {% endif %}
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" id="is_published" type="checkbox" name="is_published" value="true" {% if post is not defined or not post or post.is_published %}checked{% endif %}>
+              <label class="form-check-label" for="is_published">Опубликовано</label>
+            </div>
+          {% else %}
+            <article>
+              {% if post.image %}
+                <a href="{{ post.image }}" target="_blank">
+                  <img class="border-3 rounded img-fluid img-thumbnail mb-2" src="{{ post.image }}">
+                </a>
+              {% endif %}
+
+              <p>
+                {{ post.pub_date|date }} |
+                {% if post.location and post.location.is_published %}
+                  {{ post.location.name }}
+                {% else %}
+                  Планета Земля
+                {% endif %}
+              </p>
+
+              <h3>{{ post.title }}</h3>
+              <p>{{ post.text|linebreaksbr }}</p>
+            </article>
+          {% endif %}
+
+          <button class="btn btn-primary" type="submit">Отправить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

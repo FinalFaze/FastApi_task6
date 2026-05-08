@@ -25,6 +25,7 @@ class Post(Base):
 
     image: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
+    author: Mapped["User"] = relationship(back_populates="posts")
     category: Mapped[Optional["Category"]] = relationship(back_populates="posts")
     location: Mapped[Optional["Location"]] = relationship(back_populates="posts")
-    comments: Mapped[list["Comment"]] = relationship(back_populates="post")
+    comments: Mapped[list["Comment"]] = relationship(back_populates="post", cascade="all, delete-orphan")

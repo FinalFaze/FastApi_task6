@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% set current_username = values.username if values is defined and values.username is defined else user.username %}
+{% set current_first_name = values.first_name if values is defined and values.first_name is defined else user.first_name %}
+{% set current_last_name = values.last_name if values is defined and values.last_name is defined else user.last_name %}
+{% set current_email = values.email if values is defined and values.email is defined else user.email %}
+
+{% block title %}
+  Редактирование профиля
+{% endblock %}
+
+{% block content %}
+  <div class="col d-flex justify-content-center">
+    <div class="card" style="width: 40rem;">
+      <div class="card-header">
+        Редактирование профиля - {{ user.username }}
+      </div>
+
+      <div class="card-body">
+        <form method="post">
+          {{ csrf_input(request) }}
+          <div class="mb-3">
+            <label class="form-label" for="username">Имя пользователя</label>
+            <input class="form-control" id="username" type="text" name="username" maxlength="150" value="{{ current_username }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="first_name">Имя</label>
+            <input class="form-control" id="first_name" type="text" name="first_name" maxlength="150" value="{{ current_first_name }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="last_name">Фамилия</label>
+            <input class="form-control" id="last_name" type="text" name="last_name" maxlength="150" value="{{ current_last_name }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" id="email" type="email" name="email" maxlength="254" value="{{ current_email }}">
+          </div>
+
+          <button class="btn btn-primary" type="submit">Отправить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

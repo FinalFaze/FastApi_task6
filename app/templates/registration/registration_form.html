@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Регистрация пользователя
+{% endblock %}
+
+{% block content %}
+  <div class="col d-flex justify-content-center">
+    <div class="card" style="width: 40rem;">
+      <div class="card-header">
+        Регистрация пользователя
+      </div>
+
+      <div class="card-body">
+        <form method="post" action="/auth/registration/">
+          {{ csrf_input(request) }}
+          <div class="mb-3">
+            <label class="form-label" for="username">Имя пользователя</label>
+            <input class="form-control" id="username" type="text" name="username" maxlength="150" value="{{ values.username if values is defined and values.username is defined else "" }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="first_name">Имя</label>
+            <input class="form-control" id="first_name" type="text" name="first_name" maxlength="150" value="{{ values.first_name if values is defined and values.first_name is defined else "" }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="last_name">Фамилия</label>
+            <input class="form-control" id="last_name" type="text" name="last_name" maxlength="150" value="{{ values.last_name if values is defined and values.last_name is defined else "" }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" id="email" type="email" name="email" maxlength="254" value="{{ values.email if values is defined and values.email is defined else "" }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="password1">Пароль</label>
+            <input class="form-control" id="password1" type="password" name="password1" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="password2">Подтверждение пароля</label>
+            <input class="form-control" id="password2" type="password" name="password2" required>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Создать</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% if user %}
+  <h5 class="mb-4">Оставить комментарий</h5>
+  <form method="post" action="/posts/{{ post.id }}/comment/">
+          {{ csrf_input(request) }}
+    <div class="mb-3">
+      <textarea class="form-control" name="text" rows="3" required>{{ values.text if values is defined and values.text is defined else "" }}</textarea>
+    </div>
+    <button class="btn btn-primary" type="submit">Отправить</button>
+  </form>
+{% endif %}
+
+<br>
+
+{% for comment in comments %}
+  <div class="media mb-4" id="comment_{{ comment.id }}">
+    <div class="media-body">
+      <h5 class="mt-0">
+        <a href="/profile/{{ comment.author.username }}/" name="comment_{{ comment.id }}">
+          @{{ comment.author.username }}
+        </a>
+      </h5>
+      <small class="text-muted">{{ comment.created_at|date }}</small>
+      <br>
+      {{ comment.text|linebreaksbr }}
+    </div>
+
+    {% if user and user.id == comment.author_id %}
+      <a class="btn btn-sm text-muted" href="/posts/{{ post.id }}/edit_comment/{{ comment.id }}/" role="button">
+        Отредактировать комментарий
+      </a>
+      <a class="btn btn-sm text-muted" href="/posts/{{ post.id }}/delete_comment/{{ comment.id }}/" role="button">
+        Удалить комментарий
+      </a>
+    {% endif %}
+  </div>
+{% endfor %}

@@ -117,7 +117,6 @@ class PostCreate(StrictSchema):
     text: str
     pub_date: Optional[datetime] = None
     is_published: bool = True
-    author_id: int = Field(ge=1)
     category_id: Optional[int] = Field(default=None, ge=1)
     location_id: Optional[int] = Field(default=None, ge=1)
     image: Optional[str] = Field(default=None, max_length=100)
@@ -145,7 +144,6 @@ class PostUpdate(StrictSchema):
     text: Optional[str] = None
     pub_date: Optional[datetime] = None
     is_published: Optional[bool] = None
-    author_id: Optional[int] = Field(default=None, ge=1)
     category_id: Optional[int] = Field(default=None, ge=1)
     location_id: Optional[int] = Field(default=None, ge=1)
     image: Optional[str] = Field(default=None, max_length=100)
@@ -191,7 +189,6 @@ class ImageUploadOut(BaseModel):
 
 class CommentCreate(StrictSchema):
     text: str
-    author_id: int = Field(ge=1)
     post_id: int = Field(ge=1)
 
     @field_validator("text")
@@ -202,8 +199,6 @@ class CommentCreate(StrictSchema):
 
 class CommentUpdate(StrictSchema):
     text: Optional[str] = None
-    author_id: Optional[int] = Field(default=None, ge=1)
-    post_id: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("text")
     @classmethod

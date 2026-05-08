@@ -6,24 +6,39 @@ import app.db.models
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
+from app.admin import setup_admin
 from app.core import BASE_DIR, settings
+from app.db.database import SessionLocal
 from app.logging_config import setup_logging
 from app.routers.auth import router as auth_router
-from app.routers.users import router as users_router
 from app.routers.categories import router as categories_router
+from app.routers.comments import router as comments_router
 from app.routers.locations import router as locations_router
 from app.routers.posts import router as posts_router
-from app.routers.comments import router as comments_router
+from app.routers.users import router as users_router
+from app.routers.web import router as web_router
+from app.routers.web_auth import router as web_auth_router
 from app.security import decode_access_token_silent
+from app.web.auth import get_current_web_user
+from app.web.csrf import csrf_cookie_middleware
+from app.web.templates import templates
+
 
 setup_logging()
 audit_logger = logging.getLogger("app.audit")
 
-app = FastAPI(title="Blogicum API", version="0.6.0")
+app = FastAPI(title="Blogicum API", version="0.7.0")
+
+app.middleware("http")(csrf_cookie_middleware)
+
+static_root = BASE_DIR / "app" / "static"
+if static_root.exists():
+    app.mount("/static", StaticFiles(directory=static_root), name="static")
 
 media_root = Path(settings.media_root)
 if not media_root.is_absolute():
     media_root = BASE_DIR / media_root
+
 media_root.mkdir(parents=True, exist_ok=True)
 app.mount(settings.media_url, StaticFiles(directory=media_root), name="media")
 
@@ -33,6 +48,10 @@ app.include_router(categories_router, prefix="/api/v1")
 app.include_router(locations_router, prefix="/api/v1")
 app.include_router(posts_router, prefix="/api/v1")
 app.include_router(comments_router, prefix="/api/v1")
+app.include_router(web_auth_router)
+app.include_router(web_router)
+
+setup_admin(app)
 
 
 @app.middleware("http")
@@ -72,3 +91,54 @@ async def log_user_actions(request: Request, call_next):
 @app.get("/api/v1/health", tags=["health"])
 def health():
     return {"status": "ok"}
+
+
+@app.exception_handler(404)
+async def page_not_found(request: Request, exc):
+    db = SessionLocal()
+    try:
+        user = get_current_web_user(request, db)
+        return templates.TemplateResponse(
+            request,
+            "pages/404.html",
+            {
+                "user": user,
+            },
+            status_code=404,
+        )
+    finally:
+        db.close()
+
+
+@app.exception_handler(403)
+async def permission_denied(request: Request, exc):
+    db = SessionLocal()
+    try:
+        user = get_current_web_user(request, db)
+        return templates.TemplateResponse(
+            request,
+            "pages/403csrf.html",
+            {
+                "user": user,
+            },
+            status_code=403,
+        )
+    finally:
+        db.close()
+
+
+@app.exception_handler(500)
+async def server_error(request: Request, exc):
+    db = SessionLocal()
+    try:
+        user = get_current_web_user(request, db)
+        return templates.TemplateResponse(
+            request,
+            "pages/500.html",
+            {
+                "user": user,
+            },
+            status_code=500,
+        )
+    finally:
+        db.close()

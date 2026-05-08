@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% set is_edit = "/edit_comment/" in request.url.path %}
+{% set is_delete = "/delete_comment/" in request.url.path %}
+
+{% block title %}
+  {% if is_edit %}
+    Редактирование комментария
+  {% else %}
+    Удаление комментария
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% if user %}
+    <div class="col d-flex justify-content-center">
+      <div class="card" style="width: 40rem;">
+        <div class="card-header">
+          {% if is_edit %}
+            Редактирование комментария
+          {% else %}
+            Удаление комментария
+          {% endif %}
+        </div>
+
+        <div class="card-body">
+          <form method="post">
+          {{ csrf_input(request) }}
+            {% if not is_delete %}
+              <div class="mb-3">
+                <label class="form-label" for="text">Комментарий</label>
+                <textarea class="form-control" id="text" name="text" rows="5" required>{{ values.text if values is defined and values.text is defined else comment.text }}</textarea>
+              </div>
+            {% else %}
+              <p>{{ comment.text|linebreaksbr }}</p>
+            {% endif %}
+
+            <button class="btn btn-primary" type="submit">Отправить</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

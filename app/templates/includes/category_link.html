@@ -1,0 +1,9 @@
+{% if post.category and post.category.is_published %}
+  <a class="text-muted" href="/category/{{ post.category.slug }}/">
+    {{ post.category.title }}
+  </a>
+{% elif post.category %}
+  {{ post.category.title }}
+{% else %}
+  Без категории
+{% endif %}

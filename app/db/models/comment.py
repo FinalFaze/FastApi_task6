@@ -16,4 +16,5 @@ class Comment(Base):
     author_id: Mapped[int] = mapped_column(Integer, ForeignKey("auth_user.id"), nullable=False)
     post_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("blog_post.id"), nullable=False)
 
+    author: Mapped["User"] = relationship(back_populates="comments")
     post: Mapped["Post"] = relationship(back_populates="comments")

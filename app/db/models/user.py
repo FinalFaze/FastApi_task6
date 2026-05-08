@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
@@ -21,3 +21,10 @@ class User(Base):
     is_staff: Mapped[bool] = mapped_column(Boolean, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
     date_joined: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    posts: Mapped[list["Post"]] = relationship(back_populates="author")
+    comments: Mapped[list["Comment"]] = relationship(back_populates="author")
+
+    @property
+    def get_full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()

@@ -1,0 +1,11 @@
+2026-05-08 01:54:40,178 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=90.96
+2026-05-08 01:54:41,052 | INFO | app.audit | user_action method=GET path=/static/img/logo.png status=200 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=33.62
+2026-05-08 01:54:41,054 | INFO | app.audit | user_action method=GET path=/static/img/fav/apple-touch-icon.png status=200 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=38.74
+2026-05-08 01:54:41,060 | INFO | app.audit | user_action method=GET path=/static/img/fav/favicon-16x16.png status=200 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=42.76
+2026-05-08 01:54:44,582 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=29.36
+2026-05-08 01:54:46,902 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=27.58
+2026-05-08 01:54:47,635 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=30.38
+2026-05-08 01:54:49,044 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=30.90
+2026-05-08 01:54:51,031 | INFO | app.audit | user_action method=GET path=/auth/login/ status=404 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=8.27
+2026-05-08 01:54:53,300 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=5061.77
+2026-05-08 01:54:53,772 | INFO | app.audit | user_action method=GET path=/ status=500 user_id=- username=anonymous client_ip=127.0.0.1 duration_ms=53.61
