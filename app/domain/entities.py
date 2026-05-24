@@ -19,6 +19,14 @@ class UserEntity:
 
 
 @dataclass(slots=True)
+class TokenPairEntity:
+    access_token: str
+    refresh_token: str
+    expires_in: int
+    refresh_expires_in: int
+
+
+@dataclass(slots=True)
 class CategoryEntity:
     id: int
     is_published: bool
@@ -57,3 +65,19 @@ class CommentEntity:
     created_at: datetime
     author_id: int
     post_id: int
+
+
+@dataclass(slots=True)
+class PostImageEntity:
+    id: int
+    image: str
+    created_at: datetime
+    post_id: int
+
+
+@dataclass(slots=True)
+class CommentImageEntity:
+    id: int
+    image: str
+    created_at: datetime
+    comment_id: int

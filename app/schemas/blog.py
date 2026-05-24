@@ -183,8 +183,10 @@ class PostOut(ORMOut):
 
 
 class ImageUploadOut(BaseModel):
+    id: int | None = None
     file_name: str
     image: str
+    created_at: datetime | None = None
 
 
 class CommentCreate(StrictSchema):

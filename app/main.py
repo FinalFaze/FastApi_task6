@@ -1,12 +1,18 @@
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
+from uuid import uuid4
 
 import app.db.models
-from fastapi import FastAPI, Request
+from dishka.integrations.fastapi import setup_dishka
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.admin import setup_admin
+from app.container import create_container
 from app.core import BASE_DIR, settings
 from app.db.database import SessionLocal
 from app.logging_config import setup_logging
@@ -25,9 +31,21 @@ from app.web.templates import templates
 
 
 setup_logging()
+app_logger = logging.getLogger("app")
 audit_logger = logging.getLogger("app.audit")
 
-app = FastAPI(title="Blogicum API", version="0.7.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    app.state.dishka_container.close()
+
+
+app = FastAPI(
+    title="Blogicum API",
+    version="0.8.0",
+    lifespan=lifespan,
+)
 
 app.middleware("http")(csrf_cookie_middleware)
 
@@ -52,6 +70,7 @@ app.include_router(web_auth_router)
 app.include_router(web_router)
 
 setup_admin(app)
+setup_dishka(container=create_container(), app=app)
 
 
 @app.middleware("http")
@@ -60,6 +79,8 @@ async def log_user_actions(request: Request, call_next):
     status_code = 500
     username = "anonymous"
     user_id = "-"
+    request_id = request.headers.get("X-Request-ID") or uuid4().hex
+    request.state.request_id = request_id
 
     authorization = request.headers.get("Authorization", "")
     if authorization.startswith("Bearer "):
@@ -72,12 +93,24 @@ async def log_user_actions(request: Request, call_next):
     try:
         response = await call_next(request)
         status_code = response.status_code
+        response.headers["X-Request-ID"] = request_id
         return response
+    except Exception:
+        app_logger.exception(
+            "unhandled_request_error request_id=%s method=%s path=%s user_id=%s username=%s",
+            request_id,
+            request.method,
+            request.url.path,
+            user_id,
+            username,
+        )
+        raise
     finally:
         duration_ms = (perf_counter() - started_at) * 1000
         client_ip = request.client.host if request.client else "-"
         audit_logger.info(
-            "user_action method=%s path=%s status=%s user_id=%s username=%s client_ip=%s duration_ms=%.2f",
+            "user_action request_id=%s method=%s path=%s status=%s user_id=%s username=%s client_ip=%s duration_ms=%.2f",
+            request_id,
             request.method,
             request.url.path,
             status_code,
@@ -88,56 +121,92 @@ async def log_user_actions(request: Request, call_next):
         )
 
 
+def _is_api_request(request: Request) -> bool:
+    return request.url.path.startswith("/api/")
+
+
+def _request_id(request: Request) -> str:
+    return getattr(request.state, "request_id", "-")
+
+
 @app.get("/api/v1/health", tags=["health"])
 def health():
     return {"status": "ok"}
 
 
-@app.exception_handler(404)
-async def page_not_found(request: Request, exc):
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    app_logger.warning(
+        "request_validation_error request_id=%s path=%s errors=%s",
+        _request_id(request),
+        request.url.path,
+        exc.errors(),
+    )
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+            "request_id": _request_id(request),
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_error(request: Request, exc: HTTPException):
+    if _is_api_request(request):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "detail": exc.detail,
+                "request_id": _request_id(request),
+            },
+            headers=getattr(exc, "headers", None),
+        )
+
+    if exc.status_code == 404:
+        template_name = "pages/404.html"
+    elif exc.status_code == 403:
+        template_name = "pages/403csrf.html"
+    else:
+        template_name = "pages/500.html"
+
     db = SessionLocal()
     try:
         user = get_current_web_user(request, db)
         return templates.TemplateResponse(
             request,
-            "pages/404.html",
-            {
-                "user": user,
-            },
-            status_code=404,
+            template_name,
+            {"user": user},
+            status_code=exc.status_code,
         )
     finally:
         db.close()
 
 
-@app.exception_handler(403)
-async def permission_denied(request: Request, exc):
-    db = SessionLocal()
-    try:
-        user = get_current_web_user(request, db)
-        return templates.TemplateResponse(
-            request,
-            "pages/403csrf.html",
-            {
-                "user": user,
+@app.exception_handler(Exception)
+async def server_error(request: Request, exc: Exception):
+    app_logger.exception(
+        "internal_server_error request_id=%s path=%s",
+        _request_id(request),
+        request.url.path,
+    )
+
+    if _is_api_request(request):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "request_id": _request_id(request),
             },
-            status_code=403,
         )
-    finally:
-        db.close()
 
-
-@app.exception_handler(500)
-async def server_error(request: Request, exc):
     db = SessionLocal()
     try:
         user = get_current_web_user(request, db)
         return templates.TemplateResponse(
             request,
             "pages/500.html",
-            {
-                "user": user,
-            },
+            {"user": user},
             status_code=500,
         )
     finally:

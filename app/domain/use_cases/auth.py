@@ -1,15 +1,23 @@
-from app.domain.entities import UserEntity
+from app.domain.entities import TokenPairEntity, UserEntity
 from app.domain.errors import DomainDatabaseError, DomainUnauthorizedError
 from app.domain.ports import UserRepositoryPort
 from app.errors import InfrastructureDatabaseError, InfrastructureError, InfrastructureNotFoundError
-from app.security import create_access_token, decode_access_token, verify_password
+from app.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_access_token,
+    decode_refresh_token,
+    get_access_token_expire_seconds,
+    get_refresh_token_expire_seconds,
+    verify_password,
+)
 
 
 class AuthUseCase:
     def __init__(self, repository: UserRepositoryPort):
         self.repository = repository
 
-    def login(self, username: str, password: str) -> str:
+    def login(self, username: str, password: str) -> TokenPairEntity:
         try:
             user = self.repository.find_by_username(username)
         except InfrastructureDatabaseError as exc:
@@ -46,10 +54,26 @@ class AuthUseCase:
                 details={"id": user.id, **exc.details},
             ) from exc
 
-        return create_access_token(user.id, user.username)
+        return TokenPairEntity(
+            access_token=create_access_token(user.id, user.username),
+            refresh_token=create_refresh_token(user.id, user.username),
+            expires_in=get_access_token_expire_seconds(),
+            refresh_expires_in=get_refresh_token_expire_seconds(),
+        )
+
+    def refresh_access_token(self, refresh_token: str) -> str:
+        payload = decode_refresh_token(refresh_token)
+        return self._create_access_token_from_payload(payload, "refresh_access_token")
 
     def get_current_user(self, token: str) -> UserEntity:
         payload = decode_access_token(token)
+        return self._get_user_from_payload(payload, "get_current_user")
+
+    def _create_access_token_from_payload(self, payload: dict, operation: str) -> str:
+        user = self._get_user_from_payload(payload, operation)
+        return create_access_token(user.id, user.username)
+
+    def _get_user_from_payload(self, payload: dict, operation: str) -> UserEntity:
         subject = payload.get("sub")
         username = payload.get("username")
 
@@ -57,9 +81,9 @@ class AuthUseCase:
             user_id = int(subject)
         except (TypeError, ValueError) as exc:
             raise DomainUnauthorizedError(
-                message="Invalid access token subject",
+                message="Invalid token subject",
                 entity="Auth",
-                operation="get_current_user",
+                operation=operation,
                 details={},
             ) from exc
 
@@ -69,14 +93,14 @@ class AuthUseCase:
             raise DomainUnauthorizedError(
                 message="User from token was not found",
                 entity="Auth",
-                operation="get_current_user",
+                operation=operation,
                 details={"id": user_id},
             ) from exc
         except InfrastructureError as exc:
             raise DomainDatabaseError(
                 message="Database error while loading current user",
                 entity="Auth",
-                operation="get_current_user",
+                operation=operation,
                 details={"id": user_id, **exc.details},
             ) from exc
 
@@ -84,15 +108,15 @@ class AuthUseCase:
             raise DomainUnauthorizedError(
                 message="Inactive user is not allowed",
                 entity="Auth",
-                operation="get_current_user",
+                operation=operation,
                 details={"id": user.id},
             )
 
         if username != user.username:
             raise DomainUnauthorizedError(
-                message="Access token does not match the user",
+                message="Token does not match the user",
                 entity="Auth",
-                operation="get_current_user",
+                operation=operation,
                 details={"id": user.id},
             )
 

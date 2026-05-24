@@ -1,16 +1,19 @@
 from datetime import datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db.database import get_db
 from app.db.models import Category, Comment, Post
 from app.domain.errors import DomainError
-from app.domain.use_cases.blog import CommentUseCase
+from app.domain.use_cases.blog import CommentImageUseCase, CommentUseCase
+from app.media import delete_saved_media_paths, save_comment_images
 from app.repositories.comment import CommentRepository
+from app.repositories.images import CommentImageRepository
 from app.routers.dependencies import get_current_user, get_optional_current_user
 from app.routers.utils import raise_http_error
-from app.schemas.blog import CommentCreate, CommentOut, CommentUpdate
+from app.schemas.blog import CommentCreate, CommentOut, CommentUpdate, ImageUploadOut
 
 router = APIRouter(
     prefix="/comments",
@@ -46,6 +49,7 @@ def _get_comment_or_404(db: Session, comment_id: int) -> Comment:
         db.query(Comment)
         .options(
             joinedload(Comment.post).joinedload(Post.category),
+            selectinload(Comment.images),
         )
         .filter(Comment.id == comment_id)
         .first()
@@ -71,12 +75,22 @@ def _check_comment_author(comment: Comment, current_user) -> None:
         raise HTTPException(status_code=403, detail="You cannot modify this comment")
 
 
+def _image_upload_out(record) -> ImageUploadOut:
+    return ImageUploadOut(
+        id=record.id,
+        file_name=Path(record.image).name,
+        image=record.image,
+        created_at=record.created_at,
+    )
+
+
 @router.get("", response_model=list[CommentOut])
 def list_comments(db: Session = Depends(get_db)):
     return (
         db.query(Comment)
         .join(Post, Comment.post_id == Post.id)
         .join(Category, Post.category_id == Category.id)
+        .options(selectinload(Comment.images))
         .filter(
             Post.pub_date <= datetime.utcnow(),
             Post.is_published.is_(True),
@@ -105,6 +119,42 @@ def create_comment(
         return CommentUseCase(CommentRepository(db)).create(data)
     except DomainError as exc:
         raise_http_error(exc)
+
+
+@router.post("/{comment_id}/images", response_model=list[ImageUploadOut], status_code=status.HTTP_201_CREATED)
+async def add_comment_images(
+    comment_id: int,
+    image_files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    comment = _get_comment_or_404(db, comment_id)
+    _check_comment_author(comment, current_user)
+    saved_paths = []
+
+    try:
+        saved_paths = await save_comment_images(image_files)
+        records = CommentImageUseCase(CommentImageRepository(db)).add_images(comment_id, saved_paths)
+        return [_image_upload_out(record) for record in records]
+    except DomainError as exc:
+        delete_saved_media_paths(saved_paths)
+        raise_http_error(exc)
+
+
+@router.get("/images/{image_id}", response_model=ImageUploadOut)
+def get_comment_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_optional_current_user),
+):
+    try:
+        record = CommentImageUseCase(CommentImageRepository(db)).get(image_id)
+    except DomainError as exc:
+        raise_http_error(exc)
+
+    comment = _get_comment_or_404(db, record.comment_id)
+    _check_comment_visible(comment, current_user)
+    return _image_upload_out(record)
 
 
 @router.get("/{comment_id}", response_model=CommentOut)

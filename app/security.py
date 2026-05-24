@@ -47,18 +47,20 @@ def get_access_token_expire_seconds() -> int:
     return settings.jwt_access_token_expire_minutes * 60
 
 
-def create_access_token(user_id: int, username: str) -> str:
-    now = datetime.now(timezone.utc)
-    expire_at = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+def get_refresh_token_expire_seconds() -> int:
+    return settings.jwt_refresh_token_expire_days * 24 * 60 * 60
 
+
+def _create_jwt_token(user_id: int, username: str, purpose: str, expires_delta: timedelta) -> str:
+    now = datetime.now(timezone.utc)
+    expire_at = now + expires_delta
     payload = {
         "sub": str(user_id),
         "username": username,
-        "purpose": "access",
+        "purpose": purpose,
         "iat": now,
         "exp": expire_at,
     }
-
     return jwt.encode(
         payload,
         settings.jwt_secret_key,
@@ -66,7 +68,25 @@ def create_access_token(user_id: int, username: str) -> str:
     )
 
 
-def decode_access_token(token: str) -> dict:
+def create_access_token(user_id: int, username: str) -> str:
+    return _create_jwt_token(
+        user_id=user_id,
+        username=username,
+        purpose="access",
+        expires_delta=timedelta(minutes=settings.jwt_access_token_expire_minutes),
+    )
+
+
+def create_refresh_token(user_id: int, username: str) -> str:
+    return _create_jwt_token(
+        user_id=user_id,
+        username=username,
+        purpose="refresh",
+        expires_delta=timedelta(days=settings.jwt_refresh_token_expire_days),
+    )
+
+
+def _decode_token(token: str, purpose: str, operation: str) -> dict:
     try:
         payload = jwt.decode(
             token,
@@ -75,22 +95,29 @@ def decode_access_token(token: str) -> dict:
         )
     except InvalidTokenError as exc:
         raise DomainUnauthorizedError(
-            message="Invalid or expired access token",
+            message=f"Invalid or expired {purpose} token",
             entity="Auth",
-            operation="decode_token",
+            operation=operation,
             details={},
         ) from exc
 
-    purpose = payload.get("purpose", "access")
-    if purpose != "access":
+    if payload.get("purpose") != purpose:
         raise DomainUnauthorizedError(
-            message="Invalid access token purpose",
+            message=f"Invalid {purpose} token purpose",
             entity="Auth",
-            operation="decode_token",
+            operation=operation,
             details={},
         )
 
     return payload
+
+
+def decode_access_token(token: str) -> dict:
+    return _decode_token(token, "access", "decode_access_token")
+
+
+def decode_refresh_token(token: str) -> dict:
+    return _decode_token(token, "refresh", "decode_refresh_token")
 
 
 def decode_access_token_silent(token: str) -> dict | None:
@@ -103,8 +130,7 @@ def decode_access_token_silent(token: str) -> dict | None:
     except InvalidTokenError:
         return None
 
-    purpose = payload.get("purpose", "access")
-    if purpose != "access":
+    if payload.get("purpose") != "access":
         return None
 
     return payload
@@ -115,45 +141,13 @@ def get_password_reset_token_expire_minutes() -> int:
 
 
 def create_password_reset_token(user_id: int, username: str) -> str:
-    now = datetime.now(timezone.utc)
-    expire_at = now + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
-
-    payload = {
-        "sub": str(user_id),
-        "username": username,
-        "purpose": "password_reset",
-        "iat": now,
-        "exp": expire_at,
-    }
-
-    return jwt.encode(
-        payload,
-        settings.jwt_secret_key,
-        algorithm=settings.jwt_algorithm,
+    return _create_jwt_token(
+        user_id=user_id,
+        username=username,
+        purpose="password_reset",
+        expires_delta=timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
     )
 
 
 def decode_password_reset_token(token: str) -> dict:
-    try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm],
-        )
-    except InvalidTokenError as exc:
-        raise DomainUnauthorizedError(
-            message="Invalid or expired password reset token",
-            entity="Auth",
-            operation="decode_password_reset_token",
-            details={},
-        ) from exc
-
-    if payload.get("purpose") != "password_reset":
-        raise DomainUnauthorizedError(
-            message="Invalid password reset token purpose",
-            entity="Auth",
-            operation="decode_password_reset_token",
-            details={},
-        )
-
-    return payload
+    return _decode_token(token, "password_reset", "decode_password_reset_token")

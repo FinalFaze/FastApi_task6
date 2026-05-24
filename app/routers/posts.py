@@ -1,14 +1,15 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db.database import get_db
 from app.db.models import Category, Post
 from app.domain.errors import DomainError
-from app.domain.use_cases.blog import PostUseCase
-from app.media import save_post_image
+from app.domain.use_cases.blog import PostImageUseCase, PostUseCase
+from app.media import delete_saved_media_paths, save_post_image, save_post_images
+from app.repositories.images import PostImageRepository
 from app.repositories.post import PostRepository
 from app.routers.dependencies import get_current_user, get_optional_current_user
 from app.routers.utils import raise_http_error
@@ -32,7 +33,7 @@ def _is_public(post: Post) -> bool:
 def _get_post_or_404(db: Session, post_id: int) -> Post:
     post = (
         db.query(Post)
-        .options(joinedload(Post.category))
+        .options(joinedload(Post.category), selectinload(Post.images))
         .filter(Post.id == post_id)
         .first()
     )
@@ -54,12 +55,21 @@ def _check_post_author(post: Post, current_user) -> None:
         raise HTTPException(status_code=403, detail="You cannot modify this post")
 
 
+def _image_upload_out(record) -> ImageUploadOut:
+    return ImageUploadOut(
+        id=record.id,
+        file_name=Path(record.image).name,
+        image=record.image,
+        created_at=record.created_at,
+    )
+
+
 @router.get("", response_model=list[PostOut])
 def list_posts(db: Session = Depends(get_db)):
     return (
         db.query(Post)
         .join(Category, Post.category_id == Category.id)
-        .options(joinedload(Post.category))
+        .options(joinedload(Post.category), selectinload(Post.images))
         .filter(
             Post.pub_date <= datetime.utcnow(),
             Post.is_published.is_(True),
@@ -68,17 +78,6 @@ def list_posts(db: Session = Depends(get_db)):
         .order_by(Post.pub_date.desc())
         .all()
     )
-
-
-@router.get("/{post_id}", response_model=PostOut)
-def get_post(
-    post_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_optional_current_user),
-):
-    post = _get_post_or_404(db, post_id)
-    _check_post_visible(post, current_user)
-    return post
 
 
 @router.post("/upload-image", response_model=ImageUploadOut, status_code=status.HTTP_201_CREATED)
@@ -94,6 +93,53 @@ async def upload_post_image(
         )
     except DomainError as exc:
         raise_http_error(exc)
+
+
+@router.post("/{post_id}/images", response_model=list[ImageUploadOut], status_code=status.HTTP_201_CREATED)
+async def add_post_images(
+    post_id: int,
+    image_files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    post = _get_post_or_404(db, post_id)
+    _check_post_author(post, current_user)
+    saved_paths = []
+
+    try:
+        saved_paths = await save_post_images(image_files)
+        records = PostImageUseCase(PostImageRepository(db)).add_images(post_id, saved_paths)
+        return [_image_upload_out(record) for record in records]
+    except DomainError as exc:
+        delete_saved_media_paths(saved_paths)
+        raise_http_error(exc)
+
+
+@router.get("/images/{image_id}", response_model=ImageUploadOut)
+def get_post_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_optional_current_user),
+):
+    try:
+        record = PostImageUseCase(PostImageRepository(db)).get(image_id)
+    except DomainError as exc:
+        raise_http_error(exc)
+
+    post = _get_post_or_404(db, record.post_id)
+    _check_post_visible(post, current_user)
+    return _image_upload_out(record)
+
+
+@router.get("/{post_id}", response_model=PostOut)
+def get_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_optional_current_user),
+):
+    post = _get_post_or_404(db, post_id)
+    _check_post_visible(post, current_user)
+    return post
 
 
 @router.post("/form", response_model=PostOut, status_code=status.HTTP_201_CREATED)
@@ -127,6 +173,8 @@ async def create_post_with_optional_image(
 
         return PostUseCase(PostRepository(db)).create(payload)
     except DomainError as exc:
+        if image_path:
+            delete_saved_media_paths([image_path])
         raise_http_error(exc)
 
 

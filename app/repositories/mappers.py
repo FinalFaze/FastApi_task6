@@ -1,9 +1,11 @@
-from app.db.models import Category, Comment, Location, Post, User
+from app.db.models import Category, Comment, CommentImage, Location, Post, PostImage, User
 from app.domain.entities import (
     CategoryEntity,
     CommentEntity,
+    CommentImageEntity,
     LocationEntity,
     PostEntity,
+    PostImageEntity,
     UserEntity,
 )
 
@@ -66,4 +68,22 @@ def to_comment_entity(model: Comment) -> CommentEntity:
         created_at=model.created_at,
         author_id=model.author_id,
         post_id=model.post_id,
+    )
+
+
+def to_post_image_entity(model: PostImage) -> PostImageEntity:
+    return PostImageEntity(
+        id=model.id,
+        image=model.image,
+        created_at=model.created_at,
+        post_id=model.post_id,
+    )
+
+
+def to_comment_image_entity(model: CommentImage) -> CommentImageEntity:
+    return CommentImageEntity(
+        id=model.id,
+        image=model.image,
+        created_at=model.created_at,
+        comment_id=model.comment_id,
     )

@@ -3,8 +3,10 @@ from typing import Protocol
 from app.domain.entities import (
     CategoryEntity,
     CommentEntity,
+    CommentImageEntity,
     LocationEntity,
     PostEntity,
+    PostImageEntity,
     UserEntity,
 )
 
@@ -49,3 +51,13 @@ class CommentRepositoryPort(Protocol):
     def create(self, data: dict) -> CommentEntity: ...
     def update(self, obj_id: int, data: dict) -> CommentEntity: ...
     def delete(self, obj_id: int) -> None: ...
+
+
+class PostImageRepositoryPort(Protocol):
+    def get(self, obj_id: int) -> PostImageEntity: ...
+    def create_many(self, post_id: int, image_paths: list[str]) -> list[PostImageEntity]: ...
+
+
+class CommentImageRepositoryPort(Protocol):
+    def get(self, obj_id: int) -> CommentImageEntity: ...
+    def create_many(self, comment_id: int, image_paths: list[str]) -> list[CommentImageEntity]: ...

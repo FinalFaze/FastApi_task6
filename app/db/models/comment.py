@@ -18,3 +18,4 @@ class Comment(Base):
 
     author: Mapped["User"] = relationship(back_populates="comments")
     post: Mapped["Post"] = relationship(back_populates="comments")
+    images: Mapped[list["CommentImage"]] = relationship(back_populates="comment", cascade="all, delete-orphan")

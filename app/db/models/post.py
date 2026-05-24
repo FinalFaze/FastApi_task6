@@ -29,3 +29,4 @@ class Post(Base):
     category: Mapped[Optional["Category"]] = relationship(back_populates="posts")
     location: Mapped[Optional["Location"]] = relationship(back_populates="posts")
     comments: Mapped[list["Comment"]] = relationship(back_populates="post", cascade="all, delete-orphan")
+    images: Mapped[list["PostImage"]] = relationship(back_populates="post", cascade="all, delete-orphan")

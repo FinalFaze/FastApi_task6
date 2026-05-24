@@ -1,5 +1,5 @@
 fastapi>=0.110
-uvicorn>=0.27
+uvicorn[standard]>=0.27
 SQLAlchemy>=2.0
 pydantic>=2.0
 pydantic-settings>=2.0
@@ -9,3 +9,5 @@ PyJWT>=2.8
 python-multipart>=0.0.9
 jinja2>=3.1
 sqladmin>=0.20
+itsdangerous>=2.2
+dishka>=1.6

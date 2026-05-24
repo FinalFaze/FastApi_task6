@@ -3,8 +3,10 @@ from datetime import datetime
 from app.domain.entities import (
     CategoryEntity,
     CommentEntity,
+    CommentImageEntity,
     LocationEntity,
     PostEntity,
+    PostImageEntity,
     UserEntity,
 )
 from app.domain.errors import (
@@ -15,8 +17,10 @@ from app.domain.errors import (
 )
 from app.domain.ports import (
     CategoryRepositoryPort,
+    CommentImageRepositoryPort,
     CommentRepositoryPort,
     LocationRepositoryPort,
+    PostImageRepositoryPort,
     PostRepositoryPort,
     UserRepositoryPort,
 )
@@ -287,3 +291,51 @@ class CommentUseCase:
             self.repository.delete(obj_id)
         except InfrastructureError as exc:
             _raise_domain_error("Comment", exc, {"id": obj_id})
+
+
+class PostImageUseCase:
+    def __init__(self, repository: PostImageRepositoryPort):
+        self.repository = repository
+
+    def get(self, image_id: int) -> PostImageEntity:
+        try:
+            return self.repository.get(image_id)
+        except InfrastructureError as exc:
+            _raise_domain_error("PostImage", exc, {"id": image_id})
+
+    def add_images(self, post_id: int, image_paths: list[str]) -> list[PostImageEntity]:
+        if not image_paths:
+            raise DomainValidationError(
+                message="At least one image must be provided",
+                entity="PostImage",
+                operation="add_images",
+                details={"post_id": post_id},
+            )
+        try:
+            return self.repository.create_many(post_id, image_paths)
+        except InfrastructureError as exc:
+            _raise_domain_error("PostImage", exc, {"post_id": post_id, "images_count": len(image_paths)})
+
+
+class CommentImageUseCase:
+    def __init__(self, repository: CommentImageRepositoryPort):
+        self.repository = repository
+
+    def get(self, image_id: int) -> CommentImageEntity:
+        try:
+            return self.repository.get(image_id)
+        except InfrastructureError as exc:
+            _raise_domain_error("CommentImage", exc, {"id": image_id})
+
+    def add_images(self, comment_id: int, image_paths: list[str]) -> list[CommentImageEntity]:
+        if not image_paths:
+            raise DomainValidationError(
+                message="At least one image must be provided",
+                entity="CommentImage",
+                operation="add_images",
+                details={"comment_id": comment_id},
+            )
+        try:
+            return self.repository.create_many(comment_id, image_paths)
+        except InfrastructureError as exc:
+            _raise_domain_error("CommentImage", exc, {"comment_id": comment_id, "images_count": len(image_paths)})

@@ -23,13 +23,15 @@ class Settings(BaseSettings):
     db_user: str = Field(default="blogicum", alias="DB_USER")
     db_password: str = Field(default="blogicum", alias="DB_PASSWORD")
 
-    jwt_secret_key: str = Field(default="change-me-super-secret-key", alias="JWT_SECRET_KEY")
+    jwt_secret_key: str = Field(default="change-me-super-secret-key-please-replace-in-production", alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     jwt_access_token_expire_minutes: int = Field(default=60, alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
+    jwt_refresh_token_expire_days: int = Field(default=14, alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS")
 
     media_root: str = Field(default="media", alias="MEDIA_ROOT")
     media_url: str = Field(default="/media", alias="MEDIA_URL")
     max_upload_file_size_mb: int = Field(default=5, alias="MAX_UPLOAD_FILE_SIZE_MB")
+    max_upload_files_per_request: int = Field(default=10, alias="MAX_UPLOAD_FILES_PER_REQUEST")
 
     @property
     def sqlalchemy_database_url(self) -> str:
